@@ -11,7 +11,7 @@ This project implements a transformer-based neural network architecture from scr
 - [Model Architecture](#model-architecture)
 - [Installation](#installation)
 - [Results](#results)
-- [Further Improvements](# Further-Improvements)
+- [Further Improvements](#Further-Improvements)
 - [References](#references)
 
 ## Introduction

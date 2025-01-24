@@ -7,7 +7,7 @@ def get_config():
         "lr": 10**-4,
         "seq_len": 450,
         "d_model": 512,
-        "datasource": 'iitb',
+        "datasource": 'Helsinki-NLP/opus-100',
         "lang_src": "en",
         "lang_tgt": "hi",
         "model_folder": "weights",

@@ -1,3 +1,8 @@
 \iitb_weights
 tokenizer_hi.json
 tokenizer_en.json
+english-italian_trained.pt
+opus-100_weights
+Helsinki-NLP
+\runs
+\__pycache__
