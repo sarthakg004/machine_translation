@@ -20,11 +20,11 @@ Machine Translation (MT) is the task of automatically converting text from one l
 
 ## Dataset
 
-We use the **IIT Bombay English-Hindi Parallel Corpus**, which contains around **1.6 million** sentence pairs with their corresponding translations in both languages. The dataset consists of formal translations in various domains such as health, tourism, and general topics.
+We use the **Helsinki-NLP/opus-100 en-hi Dataset**, which contains around **538K** sentence pairs with their corresponding translations in both languages. The dataset consists of formal translations in various domains such as health, tourism, and general topics.
 
 - **Source Language**: English
 - **Target Language**: Hindi
-- **Dataset Link**: [IIT Bombay English-Hindi Corpus](http://www.cfilt.iitb.ac.in/iitb_parallel/)
+- **Dataset Link**: [Helsinki-NLP/opus-100](https://huggingface.co/datasets/Helsinki-NLP/opus-100/viewer/en-hi)
 
 ### Preprocessing
 
@@ -72,9 +72,9 @@ pip install -r requirements.txt
 The model was evaluated using the Character Error Rate, Word Error Rate and BLEU score to measure translation accuracy. 
 
 After training, the model achieved : 
-- **Character Error Rate:** 0.3548728823661804
-- **Word Error Rate:** 0.6785714030265808
-- **BLEU Score:** 0.0
+- **Character Error Rate:** 0.5569230914115906
+- **Word Error Rate:** 0.8487805128097534
+- **BLEU Score:** 0.06637167930603027
 
 Example translations:
 Input: "I love machine learning."
@@ -84,7 +84,7 @@ Predicted Translation: "मुझे मशीन लर्निंग पस�
 ## Further-Improvements
 
 - The following model was trained till 20 epochs. The performance can be increased by improving the number of epochs and introducing early stopping so that our model does not overfit
-- As the dataset is huge only 10% of the data is used for training and validation due to limited resources. The performance can be further improved by using the entire dataset.
+- As the dataset is huge only 20% of the data(~58k) is used for training and validation due to limited resources. The performance can be further improved by using the entire dataset.
 
 ## References
 

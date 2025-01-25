@@ -58,89 +58,73 @@ def run_validation(model, validation_ds, tokenizer_src, tokenizer_tgt, max_len, 
 
     count = 0
 
-
-
     source_texts = []
-
     expected = []
-
     predicted = []
 
+    total_val_loss = 0.0
+    num_batches = 0
 
+    loss_fn = nn.CrossEntropyLoss(ignore_index=tokenizer_src.token_to_id('[PAD]'), label_smoothing=0.1).to(device)
 
     try:
-
         # get the console window width
-
         with os.popen('stty size', 'r') as console:
-
             _, console_width = console.read().split()
-
             console_width = int(console_width)
-
     except:
-
         # If we can't get the console width, use 80 as default
-
         console_width = 80
 
-
-
     with torch.no_grad():
-
         for batch in validation_ds:
-
             count += 1
+            num_batches += 1
 
             encoder_input = batch["encoder_input"].to(device) # (b, seq_len)
-
+            decoder_input = batch['decoder_input'].to(device) # (b, seq_len)
             encoder_mask = batch["encoder_mask"].to(device) # (b, 1, 1, seq_len)
-
-
+            decoder_mask = batch['decoder_mask'].to(device) # (b, 1, seq_len, seq_len)
+            label = batch['label'].to(device) # (b, seq_len)
 
             # check that the batch size is 1
+            assert encoder_input.size(
+                0) == 1, "Batch size must be 1 for validation"
 
-            assert encoder_input.size(0) == 1, "Batch size must be 1 for validation"
+            # Forward pass for loss calculation
+            encoder_output = model.encode(encoder_input, encoder_mask)
+            decoder_output = model.decode(encoder_output, encoder_mask, decoder_input, decoder_mask)
+            proj_output = model.project(decoder_output)
+
+            # Calculate validation loss
+            loss = loss_fn(proj_output.view(-1, tokenizer_tgt.get_vocab_size()), label.view(-1))
+            total_val_loss += loss.item()
 
             model_out = greedy_decode(model, encoder_input, encoder_mask, tokenizer_src, tokenizer_tgt, max_len, device)
 
             source_text = batch["src_text"][0]
-
             target_text = batch["tgt_text"][0]
-
             model_out_text = tokenizer_tgt.decode(model_out.detach().cpu().numpy())
 
             source_texts.append(source_text)
-
             expected.append(target_text)
-
             predicted.append(model_out_text)
 
-            
-
             # Print the source, target and model output
-
             print_msg('-'*console_width)
-
             print_msg(f"{f'SOURCE: ':>12}{source_text}")
-
             print_msg(f"{f'TARGET: ':>12}{target_text}")
-
             print_msg(f"{f'PREDICTED: ':>12}{model_out_text}")
 
-
-
             if count == num_examples:
-
                 print_msg('-'*console_width)
-
                 break
 
     # Initialize the different metrics
     char_error_rate = torchmetrics.CharErrorRate()
     word_error_rate = torchmetrics.WordErrorRate()
     bleu_score = torchmetrics.BLEUScore(n_gram=4)  # Default BLEU is BLEU-4
-    rouge_score = torchmetrics.text.ROUGEScore()  # ROUGE-L is included in ROUGE metrics
+    # rouge_score = torchmetrics.text.ROUGEScore()  # ROUGE-L is included in ROUGE metrics
 
     # Calculate CER
     cer = char_error_rate(predicted, expected)
@@ -155,29 +139,32 @@ def run_validation(model, validation_ds, tokenizer_src, tokenizer_tgt, max_len, 
     bleu4 = bleu_score(predicted, expected)  # Already initialized as BLEU-4
 
     # Calculate ROUGE-L
-    rouge_l = rouge_score(predicted, expected)['rougeL']
+    # rouge_l = rouge_score(predicted, expected)['rougeL']
 
+    # Calculate average validation loss
+    avg_val_loss = total_val_loss / num_batches
 
     if writer:
+        writer.add_scalar('validation loss', avg_val_loss, global_step)
         writer.add_scalar('validation cer', cer, global_step)
         writer.add_scalar('validation wer', wer, global_step)
         writer.add_scalar('validation BLEU-1', bleu1, global_step)
         writer.add_scalar('validation BLEU-2', bleu2, global_step)
         writer.add_scalar('validation BLEU-3', bleu3, global_step)
         writer.add_scalar('validation BLEU-4', bleu4, global_step)
-        writer.add_scalar('validation ROUGE-L', rouge_l, global_step)
+        # writer.add_scalar('validation ROUGE-L', rouge_l, global_step)
         writer.flush()
 
+    print(f"Validation Loss: {avg_val_loss}")
     print(f"Character Error Rate: {cer}")
     print(f"Word Error Rate: {wer}")
     print(f"BLEU-1 Score: {bleu1}")
     print(f"BLEU-2 Score: {bleu2}")
     print(f"BLEU-3 Score: {bleu3}")
     print(f"BLEU-4 Score: {bleu4}")
-    print(f"ROUGE-L Score: {rouge_l}")
-    
-    return cer
+    # print(f"ROUGE-L Score: {rouge_l}")
 
+    return avg_val_loss
 
 def get_all_sentences(ds, lang):
     for item in ds:
@@ -197,7 +184,7 @@ def get_or_build_tokenizer(config, ds, lang):
 
 def get_ds(config):
     # It only has the train split, so we divide it overselves
-    ds_raw = load_dataset(f"{config['datasource']}", f"{config['lang_src']}-{config['lang_tgt']}", split='train')
+    ds_raw = load_dataset(f"{config['datasource']}", f"{config['lang_src']}-{config['lang_tgt']}", split='train[:20%]')
     # Build tokenizers
     tokenizer_src = get_or_build_tokenizer(config, ds_raw, config['lang_src'])
     tokenizer_tgt = get_or_build_tokenizer(config, ds_raw, config['lang_tgt'])
@@ -270,7 +257,7 @@ def train_model(config):
 
     loss_fn = nn.CrossEntropyLoss(ignore_index=tokenizer_src.token_to_id('[PAD]'), label_smoothing=0.1).to(device)
 
-    best_cer = float('inf')
+    best_val_loss = float('inf')
     patience = 5
     patience_counter = 0
 
@@ -309,21 +296,7 @@ def train_model(config):
             optimizer.zero_grad(set_to_none=True)
 
             global_step += 1
-
-        # Run validation at the end of every epoch
-        cer = run_validation(model, val_dataloader, tokenizer_src, tokenizer_tgt, config['seq_len'], device, lambda msg: batch_iterator.write(msg), global_step, writer)
-
-        # Check for early stopping
-        if cer < best_cer:
-            best_cer = cer
-            patience_counter = 0
-        else:
-            patience_counter += 1
-
-        if patience_counter >= patience:
-            print(f"Early stopping triggered after {epoch + 1} epochs.")
-            break
-
+        
         # Save the model at the end of every epoch
         model_filename = get_weights_file_path(config, f"{epoch:02d}")
         torch.save({
@@ -332,6 +305,20 @@ def train_model(config):
             'optimizer_state_dict': optimizer.state_dict(),
             'global_step': global_step
         }, model_filename)
+
+        # Run validation at the end of every epoch
+        val_loss = run_validation(model, val_dataloader, tokenizer_src, tokenizer_tgt, config['seq_len'], device, lambda msg: batch_iterator.write(msg), global_step, writer)
+
+        # Check for early stopping
+        if val_loss < best_val_loss:
+            best_val_loss = val_loss
+            patience_counter = 0
+        else:
+            patience_counter += 1
+
+        if patience_counter >= patience:
+            print(f"Early stopping triggered after {epoch + 1} epochs.")
+            break
 
 
 if __name__ == '__main__':
