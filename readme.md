@@ -72,14 +72,33 @@ pip install -r requirements.txt
 The model was evaluated using the Character Error Rate, Word Error Rate and BLEU score to measure translation accuracy. 
 
 After training, the model achieved : 
-- **Character Error Rate:** 0.5569230914115906
-- **Word Error Rate:** 0.8487805128097534
-- **BLEU Score:** 0.06637167930603027
+- **Character Error Rate:** 0.25051334500312805
+- **Word Error Rate:** 0.4615384638309479
+- **BLEU Score:** 0.07438015937805176
+
+![alt text](image.png)
 
 Example translations:
-Input: "I love machine learning."
+    SOURCE: I'll go with you.
+    TARGET: मैं तुम्हारे साथ जाना होगा.
+ PREDICTED: मैं आप के साथ जा रहा हूँ .
+--------------------------------------------------------------------------------
+    SOURCE: A significant number of people have been blaming two main political leaders for all the vice of Bangladesh.
+    TARGET: बांग्लादेश की सारी समस्या के लिए बहुत से लोग दो मुख्य राजनीतिक दल के नेताओं पर दोषारोपण करते रहे हैं.
+ PREDICTED: बांग्लादेश की सारी समस्या के लिए बहुत से लोग दो मुख्य राजनीतिक दल के नेताओं पर नज़र रखी गई .
+--------------------------------------------------------------------------------
+    SOURCE: Allah originates the creation, then He will bring it back, then you will be brought back to Him.
+    TARGET: ख़ुदा ही ने मख़लूकात को पहली बार पैदा किया फिर वही दुबारा (पैदा करेगा) फिर तुम सब लोग उसी की तरफ लौटाए जाओगे
+ PREDICTED: ख़ुदा ही ने मख़लूकात को पहली बार पैदा किया फिर वही दुबारा ( पैदा करेगा ) फिर तुम सब लोग उसी की तरफ लौटाए जाओगे
+--------------------------------------------------------------------------------
+    SOURCE: Was it not a proof for them that the learned men of Israel knew about this?
+    TARGET: क्या यह उनके लिए कोई निशानी नहीं है कि इसे बनी इसराईल के विद्वान जानते है?
+ PREDICTED: क्या यह उनके लिए कोई निशानी नहीं है कि इसे बनी इसराईल के विद्वान जानते है ?
+--------------------------------------------------------------------------------
+    SOURCE: Timeout for marking message as seen.
+    TARGET: देखे गये के रूप में संदेश चिह्नित करने के लिए समय समाप्ति.
+ PREDICTED: देखे गये के रूप में संदेश चिह्नित करने के लिए समय समाप्ति .
 
-Predicted Translation: "मुझे मशीन लर्निंग पसंद है।"
 
 ## Further-Improvements
 
